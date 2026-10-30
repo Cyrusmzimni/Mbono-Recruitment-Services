@@ -1,0 +1,13 @@
+{
+  "name": "mbono-recruitment-services",
+  "private": true,
+  "version": "1.0.0",
+  "description": "MBONO Recruitment Services - recruitment platform (React + Express + PostgreSQL + JWT)",
+  "scripts": {
+    "install:all": "npm install && npm install --prefix server && npm install --prefix client",
+    "dev": "concurrently -n api,web -c green,cyan \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "build": "npm run build --prefix server && npm run build --prefix client",
+    "postinstall": "npm install --prefix server && npm install --prefix client"
+  },
+  "devDependencies": { "concurrently": "^9.1.0" }
+}

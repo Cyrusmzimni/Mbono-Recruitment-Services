@@ -1,0 +1,9 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    { "label": "Install all dependencies", "type": "shell", "command": "npm install", "problemMatcher": [] },
+    { "label": "Run MBONO (API + Web)", "type": "shell", "command": "npm run dev", "isBackground": true, "problemMatcher": [], "group": { "kind": "build", "isDefault": true } },
+    { "label": "Run API only", "type": "shell", "command": "npm run dev --prefix server", "isBackground": true, "problemMatcher": [] },
+    { "label": "Run Web only", "type": "shell", "command": "npm run dev --prefix client", "isBackground": true, "problemMatcher": [] }
+  ]
+}

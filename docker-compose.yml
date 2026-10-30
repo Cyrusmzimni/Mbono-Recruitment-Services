@@ -1,0 +1,13 @@
+# Optional: real PostgreSQL. Run `docker compose up -d`, then set in server/.env:
+# DATABASE_URL=postgres://postgres:postgres@localhost:5432/mbono_recruitment
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mbono_recruitment
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+volumes:
+  pgdata:

@@ -1,0 +1,6 @@
+{
+  "typescript.tsdk": "client/node_modules/typescript/lib",
+  "files.exclude": { "**/node_modules": true, "**/dist": true },
+  "tailwindCSS.experimental.configFile": "client/tailwind.config.js",
+  "editor.formatOnSave": false
+}
