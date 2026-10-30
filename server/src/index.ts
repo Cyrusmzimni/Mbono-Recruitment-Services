@@ -1,3 +1,5 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import "dotenv/config";
 import express from "express";
 import "express-async-errors";
@@ -13,6 +15,8 @@ import { commonRouter } from "./routes/common.js";
 import { chatRouter } from "./routes/chat.js";
 
 const app = express();
+const here = path.dirname(fileURLToPath(import.meta.url));
+const clientDist = path.resolve(here, "../../client/dist");
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(cors({ origin: (process.env.CLIENT_URL || "http://localhost:5173").split(","), credentials: true }));
 app.use(express.json({ limit: "1mb" }));
@@ -28,6 +32,14 @@ app.use("/api/candidate", candidateRouter);
 app.use("/api/recruiter", recruiterRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api", commonRouter);
+
+// Serve the React frontend in production
+app.use(express.static(clientDist));
+
+// Handle frontend routes
+app.get("*", (_req, res) => {
+  res.sendFile(path.join(clientDist, "index.html"));
+});
 
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);
