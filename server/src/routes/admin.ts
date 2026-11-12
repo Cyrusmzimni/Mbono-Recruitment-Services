@@ -4,6 +4,7 @@ import { q, one, withApplicants } from "../db/index.js";
 import { authenticate, authorize } from "../middleware/auth.js";
 import { notify, sendEmail } from "../email.js";
 import { publicUser } from "./public.js";
+import { recruitmentAnalytics } from "../recruitmentAnalytics.js";
 
 export const adminRouter = Router();
 adminRouter.use(authenticate, authorize("admin"));
@@ -12,28 +13,14 @@ const count = async (sql: string, p: unknown[] = []) => Number((await one(sql, p
 
 adminRouter.get("/analytics", async (_req, res) => {
   const users = await q("SELECT role, status, created_at FROM users");
-  const jobs = await q("SELECT industry, status, closing_date FROM jobs");
-  const apps = await q("SELECT status, created_at FROM applications");
-  const by = (rows: any[], k: string) => Object.entries(rows.reduce((m: Record<string, number>, r) => ((m[r[k]] = (m[r[k]] ?? 0) + 1), m), {})).map(([label, value]) => ({ label, value })).sort((a, b) => (b.value as number) - (a.value as number));
-  // Applications per month over the last 6 months
-  const months: { label: string; value: number }[] = [];
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
-    const key = d.toISOString().slice(0, 7);
-    months.push({ label: d.toLocaleString("en-ZA", { month: "short" }), value: apps.filter(a => new Date(a.created_at).toISOString().slice(0, 7) === key).length });
-  }
-  const today = new Date().toISOString().slice(0, 10);
+  const metrics = await recruitmentAnalytics();
   res.json({
     totalUsers: users.length,
     totalRecruiters: users.filter(u => u.role === "recruiter").length,
     totalCandidates: users.filter(u => u.role === "candidate").length,
     pendingRecruiters: users.filter(u => u.role === "recruiter" && u.status === "pending").length,
-    activeVacancies: jobs.filter(j => j.status === "open" && j.closing_date >= today).length,
-    applications: apps.length,
+    ...metrics,
     contactMessages: await count("SELECT COUNT(*) AS c FROM contact_messages"),
-    applicationsByStatus: by(apps, "status"),
-    jobsByIndustry: by(jobs, "industry"),
-    applicationsByMonth: months,
   });
 });
 
@@ -44,7 +31,10 @@ adminRouter.get("/users", async (req, res) => {
   if (req.query.status) { p.push(String(req.query.status)); w.push(`status = $${p.length}`); }
   if (req.query.q) { p.push(`%${String(req.query.q).toLowerCase()}%`); w.push(`(LOWER(name) LIKE $${p.length} OR LOWER(email) LIKE $${p.length} OR LOWER(COALESCE(company_name,'')) LIKE $${p.length})`); }
   const rows = await q(`SELECT * FROM users ${w.length ? "WHERE " + w.join(" AND ") : ""} ORDER BY created_at DESC, id DESC`, p);
-  res.json(rows.map(publicUser));
+  res.json(rows.map(u => {
+    const { gender, disability_status, ...safe } = publicUser(u);
+    return safe;
+  }));
 });
 
 adminRouter.post("/users", async (req, res) => {
@@ -68,7 +58,8 @@ adminRouter.patch("/users/:id", async (req, res) => {
   vals.push(id);
   const u = await one(`UPDATE users SET ${sets.join(", ")} WHERE id = $${vals.length} RETURNING *`, vals);
   if (!u) return res.status(404).json({ error: "User not found." });
-  res.json(publicUser(u));
+  const { gender, disability_status, ...safe } = publicUser(u);
+  res.json(safe);
 });
 
 adminRouter.delete("/users/:id", async (req, res) => {

@@ -34,6 +34,10 @@ export async function initDb() {
   }
   const schema = fs.readFileSync(path.join(here, "schema.sql"), "utf8");
   for (const stmt of schema.split(";").map(s => s.trim()).filter(Boolean)) await pool.query(stmt);
+  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS gender TEXT");
+  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS disability_status TEXT");
+  await pool.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS job_alerts BOOLEAN NOT NULL DEFAULT false");
+  await pool.query("ALTER TABLE applications ADD COLUMN IF NOT EXISTS hired_at TIMESTAMPTZ");
   const count = await one<{ c: string }>("SELECT COUNT(*) AS c FROM users");
   if (Number(count?.c ?? 0) === 0) await seed();
   console.log(`[db] connected (${dbMode === "postgres" ? "PostgreSQL" : "in-memory PostgreSQL (pg-mem)"})`);

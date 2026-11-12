@@ -1,8 +1,9 @@
 import { Router } from "express";
 import { q, one, withApplicants } from "../db/index.js";
 import { authenticate, authorize } from "../middleware/auth.js";
-import { notify } from "../email.js";
+import { notify, sendEmail } from "../email.js";
 import { publicUser } from "./public.js";
+import { recruitmentAnalytics } from "../recruitmentAnalytics.js";
 
 export const recruiterRouter = Router();
 recruiterRouter.use(authenticate, authorize("recruiter", "admin"));
@@ -30,6 +31,11 @@ recruiterRouter.get("/dashboard", async (req, res) => {
   });
 });
 
+recruiterRouter.get("/analytics", async (req, res) => {
+  const s = scope(req);
+  res.json(await recruitmentAnalytics(s.sql, s.p));
+});
+
 // ----- Vacancies CRUD -----
 recruiterRouter.get("/jobs", async (req, res) => {
   const s = scope(req);
@@ -49,6 +55,38 @@ function clean(body: any, partial = false) {
   return out;
 }
 
+const titleTokens = (title: string) => new Set(
+  title.toLowerCase().match(/[a-z0-9]+/g)?.filter(token => token.length > 2) ?? [],
+);
+const similarTitle = (a: string, b: string) => {
+  const left = titleTokens(a); const right = titleTokens(b);
+  if (!left.size || !right.size) return false;
+  const common = [...left].filter(token => right.has(token)).length;
+  return common / new Set([...left, ...right]).size >= 0.5;
+};
+
+async function alertCandidatesAboutJob(job: any) {
+  const matchingCandidates = new Map<number, { email: string; name: string }>();
+  const candidates = await q(
+    `SELECT DISTINCT u.id, u.email, u.name, j.title, j.industry
+     FROM applications a JOIN users u ON u.id = a.candidate_id
+     JOIN jobs j ON j.id = a.job_id
+     WHERE u.role = 'candidate' AND u.status = 'active' AND u.job_alerts = TRUE AND j.id <> $1`,
+    [job.id],
+  );
+  for (const prior of candidates) {
+    if (String(prior.industry).toLowerCase() === String(job.industry).toLowerCase()
+      || similarTitle(prior.title, job.title)) {
+      matchingCandidates.set(prior.id, { email: prior.email, name: prior.name });
+    }
+  }
+  const baseUrl = (process.env.CLIENT_URL || "http://localhost:5173").split(",")[0].replace(/\/$/, "");
+  for (const candidate of matchingCandidates.values()) {
+    await sendEmail(candidate.email, `New job opportunity: ${job.title}`,
+      `Hi ${candidate.name},\n\nA new vacancy matches a role you previously applied for:\n\n${job.title} at ${job.company}\n${job.location} · ${job.industry}\n\nView the opportunity: ${baseUrl}/vacancies/${job.id}\n\nYou can turn off similar-job alerts in your profile settings.`);
+  }
+}
+
 recruiterRouter.post("/jobs", async (req, res) => {
   try {
     const me = await one("SELECT company_name FROM users WHERE id = $1", [req.user!.id]);
@@ -57,6 +95,10 @@ recruiterRouter.post("/jobs", async (req, res) => {
     d.recruiter_id = req.user!.id;
     const keys = Object.keys(d);
     const job = await one(`INSERT INTO jobs (${keys.join(",")}) VALUES (${keys.map((_, i) => `$${i + 1}`).join(",")}) RETURNING *`, Object.values(d));
+    if (job.status === "open" && job.closing_date >= new Date().toISOString().slice(0, 10)) {
+      try { await alertCandidatesAboutJob(job); }
+      catch (e) { console.error("[email] similar-job alert failed:", (e as Error).message); }
+    }
     res.status(201).json(job);
   } catch (e) { res.status(400).json({ error: (e as Error).message }); }
 });
@@ -110,7 +152,7 @@ recruiterRouter.patch("/applications/:id/status", async (req, res) => {
   if (!STATUSES.includes(status)) return res.status(400).json({ error: "Invalid status." });
   const app = await ownApp(req, Number(req.params.id));
   if (!app) return res.status(404).json({ error: "Application not found." });
-  await q("UPDATE applications SET status = $1, updated_at = now() WHERE id = $2", [status, app.id]);
+  await q("UPDATE applications SET status = $1, updated_at = now(), hired_at = CASE WHEN $1 = 'Hired' THEN COALESCE(hired_at, now()) ELSE hired_at END WHERE id = $2", [status, app.id]);
   await notify(app.candidate_id, app.email, `Application update: ${status}`, `Your application for ${app.title} at ${app.company} is now "${status}".`);
   res.json({ ok: true, status });
 });

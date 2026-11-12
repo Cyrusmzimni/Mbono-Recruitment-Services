@@ -14,6 +14,9 @@ CREATE TABLE IF NOT EXISTS users (
   education TEXT,
   cv_path TEXT,
   cv_name TEXT,
+  gender TEXT,
+  disability_status TEXT,
+  job_alerts BOOLEAN NOT NULL DEFAULT false,
   company_name TEXT,
   company_website TEXT,
   company_industry TEXT,
@@ -54,6 +57,7 @@ CREATE TABLE IF NOT EXISTS applications (
   status TEXT NOT NULL DEFAULT 'Submitted',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  hired_at TIMESTAMPTZ,
   UNIQUE (job_id, candidate_id)
 );
 CREATE TABLE IF NOT EXISTS interviews (

@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Building2, CalendarCheck, CalendarPlus, Download, Edit3, FileText, LayoutDashboard, Plus, Search, Settings, Star, Trash2, Users, Briefcase, UserSearch, Mail, Phone, MapPin } from "lucide-react";
+import { BarChart3, Building2, CalendarCheck, CalendarPlus, Download, Edit3, FileText, LayoutDashboard, Plus, Search, Settings, Star, Trash2, Users, Briefcase, UserSearch, Mail, Phone, MapPin } from "lucide-react";
 import { api, download, fmtDate, fmtDateTime, rand, type Job } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { Alert, Avatar, Empty, Modal, Spinner, StatCard, StatusBadge } from "../../components/ui";
 import { AccountSettings, DashboardShell, PageHead } from "./Shell";
+import RecruiterAnalytics from "./Analytics";
 
 export const STATUSES = ["Submitted", "Under Review", "Shortlisted", "Interview", "Offered", "Hired", "Rejected"];
 const TYPES = ["Full-time", "Part-time", "Contract", "Permanent", "Temporary", "Internship", "Learnership", "Graduate Programme"];
@@ -238,6 +239,7 @@ export default function RecruiterDashboard() {
   return (
     <DashboardShell title="Recruiter" tabs={[
       { id: "overview", label: "Overview", icon: LayoutDashboard },
+      { id: "analytics", label: "Analytics", icon: BarChart3 },
       { id: "vacancies", label: "Vacancies", icon: Briefcase },
       { id: "applications", label: "Applications", icon: FileText },
       { id: "interviews", label: "Interviews", icon: CalendarCheck },
@@ -245,7 +247,7 @@ export default function RecruiterDashboard() {
       { id: "company", label: "Company Profile", icon: Building2 },
       { id: "settings", label: "Settings", icon: Settings },
     ]} render={(tab, go) => ({
-      overview: <Overview go={go} />, vacancies: <VacancyManager />, applications: <Applications />, interviews: <Interviews />, candidates: <CandidateSearch />, company: <Company />, settings: <AccountSettings />,
+      overview: <Overview go={go} />, analytics: <RecruiterAnalytics />, vacancies: <VacancyManager />, applications: <Applications />, interviews: <Interviews />, candidates: <CandidateSearch />, company: <Company />, settings: <AccountSettings />,
     } as Record<string, React.ReactNode>)[tab]} />
   );
 }

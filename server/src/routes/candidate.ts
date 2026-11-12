@@ -33,9 +33,20 @@ candidateRouter.get("/profile", async (req, res) => {
 });
 
 candidateRouter.put("/profile", async (req, res) => {
-  const allowed = ["name", "phone", "location", "headline", "bio", "skills", "experience", "education"];
+  const allowed = ["name", "phone", "location", "headline", "bio", "skills", "experience", "education", "gender", "disability_status"];
   const sets: string[] = []; const vals: unknown[] = [];
-  for (const k of allowed) if (k in (req.body ?? {})) { vals.push(String(req.body[k] ?? "").slice(0, 4000)); sets.push(`${k} = $${vals.length}`); }
+  for (const k of allowed) if (k in (req.body ?? {})) {
+    const value = String(req.body[k] ?? "").slice(0, 4000);
+    if (k === "gender" && !["", "Woman", "Man", "Non-binary", "Prefer not to say"].includes(value))
+      return res.status(400).json({ error: "Please choose a valid gender option." });
+    if (k === "disability_status" && !["", "Yes", "No", "Prefer not to say"].includes(value))
+      return res.status(400).json({ error: "Please choose a valid disability option." });
+    vals.push(value || null); sets.push(`${k} = $${vals.length}`);
+  }
+  if ("job_alerts" in (req.body ?? {})) {
+    if (typeof req.body.job_alerts !== "boolean") return res.status(400).json({ error: "Job alert preference must be true or false." });
+    vals.push(req.body.job_alerts); sets.push(`job_alerts = $${vals.length}`);
+  }
   if (!sets.length) return res.status(400).json({ error: "Nothing to update." });
   if ("name" in req.body && !String(req.body.name).trim()) return res.status(400).json({ error: "Name is required." });
   vals.push(req.user!.id);

@@ -6,6 +6,7 @@ import { useReloadContent } from "../../lib/content";
 import { Alert, Avatar, Bars, Columns, Empty, Modal, Spinner, StatCard, StatusBadge } from "../../components/ui";
 import { AccountSettings, DashboardShell, PageHead } from "./Shell";
 import { VacancyManager } from "./Recruiter";
+import { AnalyticsBreakdown } from "./Analytics";
 
 function Overview({ a, go }: { a: any; go: (t: string) => void }) {
   if (!a) return <Spinner />;
@@ -115,6 +116,7 @@ function Reports({ a }: { a: any }) {
           <dl className="grid grid-cols-2 gap-4 text-sm">{[["Users", a.totalUsers], ["Candidates", a.totalCandidates], ["Recruiters", a.totalRecruiters], ["Active vacancies", a.activeVacancies], ["Applications", a.applications], ["Avg. applications / vacancy", a.activeVacancies ? (a.applications / a.activeVacancies).toFixed(1) : 0]].map(([k, v]) => <div key={k as string} className="rounded-xl bg-ink-50 p-3 dark:bg-ink-800"><dt className="muted">{k}</dt><dd className="text-xl font-bold">{v}</dd></div>)}</dl>
         </div>
       </div>}
+      {a && <div className="mt-8"><AnalyticsBreakdown data={a} /></div>}
     </>
   );
 }

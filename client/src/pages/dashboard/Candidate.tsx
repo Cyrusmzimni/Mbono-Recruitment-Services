@@ -107,9 +107,12 @@ function Profile() {
           {field("name", "Full name")}
           <div><label className="label">Email</label><input className="input opacity-70" value={p.email} disabled /></div>
           {field("phone", "Phone", { ph: "+27 …" })}{field("location", "Location", { ph: "City, Province" })}
+          <div><label className="label" htmlFor="p-gender">Gender (optional)</label><select id="p-gender" className="input" value={p.gender ?? ""} onChange={e => setP({ ...p, gender: e.target.value })}><option value="">Prefer not to share</option><option>Woman</option><option>Man</option><option>Non-binary</option><option>Prefer not to say</option></select></div>
+          <div><label className="label" htmlFor="p-disability">Disability status (optional)</label><select id="p-disability" className="input" value={p.disability_status ?? ""} onChange={e => setP({ ...p, disability_status: e.target.value })}><option value="">Prefer not to share</option><option>Yes</option><option>No</option><option>Prefer not to say</option></select></div>
           {field("headline", "Professional headline", { ph: "e.g. Customer Service Specialist" })}
           {field("skills", "Skills (comma separated)", { ph: "Excel, CRM, isiXhosa" })}
           {field("bio", "About me", { area: true })}{field("experience", "Work experience", { area: true })}{field("education", "Education & qualifications", { area: true })}
+          <label className="flex items-start gap-2 text-sm sm:col-span-2"><input type="checkbox" className="mt-1 h-4 w-4 accent-brand-700" checked={!!p.job_alerts} onChange={e => setP({ ...p, job_alerts: e.target.checked })} /><span><span className="font-medium">Email me similar job opportunities</span><span className="block text-xs muted">We'll alert you about matching vacancies based on jobs you've applied for. You can turn this off anytime.</span></span></label>
           <div className="sm:col-span-2"><button className="btn-primary">Save profile</button></div>
         </form>
         <div className="space-y-6">
